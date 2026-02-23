@@ -21,6 +21,7 @@ kotlin {
     nativeTarget.apply {
         binaries {
             executable {
+                baseName = "gcmd"
                 entryPoint = "off.kys.gcmd.main"
             }
         }

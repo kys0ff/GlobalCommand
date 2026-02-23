@@ -81,6 +81,8 @@ private fun installFile(exeFile: File, deleteOriginal: Boolean) {
             }
         }
 
+        destination.setExtendedAttribute(ATTR_GCMD_VERSION, GCMD_VERSION.encodeToByteArray())
+
         println("${GREEN}✔ Installation complete!${RESET}")
         println("${GREEN}Ready to use:${RESET} Type ${BOLD}${exeFile.name}${RESET} in your terminal.")
 
@@ -138,8 +140,10 @@ private fun installDirectory(dir: File, exeNameOverride: String, deleteOriginal:
         exeFile.setExecutable(true)
 
         exeFile.createSymlinkTo(linkFile.absolutePath)
-
         println("${GREEN}✔ Symlink created successfully.${RESET}")
+
+        exeFile.setExtendedAttribute(ATTR_GCMD_VERSION, GCMD_VERSION.encodeToByteArray())
+
         println("${GREEN}✔ Installation complete!${RESET}")
         println("${GREEN}Ready to use:${RESET} Type ${BOLD}$exeNameOverride${RESET} in your terminal.")
 
