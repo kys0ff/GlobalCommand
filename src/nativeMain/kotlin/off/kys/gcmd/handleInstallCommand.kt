@@ -73,12 +73,12 @@ private fun installFile(exeFile: File, deleteOriginal: Boolean) {
             exeFile.copyTo(BIN_PATH)
         }
 
-        if (!exeFile.canExecute()) {
-            println("${YELLOW}• Granting execute permission to ${BOLD}${exeFile.name}${RESET}")
-            exeFile.setExecutable(true).run {
-                if (!this) {
+        if (!destination.canExecute()) {
+            println("${YELLOW}• Granting execute permission to ${BOLD}${destination.name}${RESET}")
+            destination.setExecutable(true).let {
+                if (!it) {
                     printError("Failed to set execute permission on the installed file.")
-                    println("${YELLOW}Tip:${RESET} You may need to set permissions manually with 'chmod +x ${BOLD}${exeFile.absolutePath}${RESET}'")
+                    println("${YELLOW}Tip:${RESET} You may need to set permissions manually with 'chmod +x ${BOLD}${destination.absolutePath}${RESET}'")
                 }
             }
         }
