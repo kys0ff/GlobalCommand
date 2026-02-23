@@ -75,7 +75,12 @@ private fun installFile(exeFile: File, deleteOriginal: Boolean) {
 
         if (!exeFile.canExecute()) {
             println("${YELLOW}• Granting execute permission to ${BOLD}${exeFile.name}${RESET}")
-            exeFile.setExecutable(true)
+            exeFile.setExecutable(true).run {
+                if (!this) {
+                    printError("Failed to set execute permission on the installed file.")
+                    println("${YELLOW}Tip:${RESET} You may need to set permissions manually with 'chmod +x ${BOLD}${exeFile.absolutePath}${RESET}'")
+                }
+            }
         }
 
         println("${GREEN}✔ Installation complete!${RESET}")
