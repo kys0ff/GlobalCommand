@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.kotlinxSerialization)
 }
 
 group = "off.kys.gcmd"
@@ -29,7 +28,7 @@ kotlin {
 
     sourceSets {
         nativeMain.dependencies {
-            implementation(libs.kotlinxSerializationJson)
+            // No external dependencies for now, but you can add libraries here if needed
         }
     }
 }
