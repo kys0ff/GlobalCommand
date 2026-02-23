@@ -22,10 +22,3 @@ fun main(args: Array<String>) {
         }
     }
 }
-
-// ----------------------------
-// Utility Functions
-// ----------------------------
-fun printError(message: String) {
-    println("${RED}${BOLD}error:${RESET} $message")
-}
