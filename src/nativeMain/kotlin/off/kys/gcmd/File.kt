@@ -309,7 +309,6 @@ class File {
         overwrite: Boolean = true,
         recursive: Boolean = true,
     ): Boolean = memScoped {
-
         val pid = fork()
         if (pid < 0) return false
 

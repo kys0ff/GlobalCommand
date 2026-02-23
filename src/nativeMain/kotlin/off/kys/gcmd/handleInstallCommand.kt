@@ -61,7 +61,7 @@ fun handleInstallCommand(positionals: List<String>, flags: List<String>) {
         pkgFile.isDirectory() ->
             installDirectory(
                 pkgFile,
-                positionals.getOrNull(2) ?: pkgFile.name,
+                positionals.getOrNull(2)?.ifEmpty { pkgFile.name } ?: pkgFile.name,
                 deleteOriginal,
                 forceInstall,
                 noSymlink,
