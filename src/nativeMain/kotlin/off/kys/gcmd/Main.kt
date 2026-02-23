@@ -3,13 +3,6 @@ package off.kys.gcmd
 import kotlin.system.exitProcess
 
 // ----------------------------
-// Global Constants
-// ----------------------------
-const val GCMD_VERSION = "0.0.1"
-const val BIN_PATH = "/usr/bin/"
-const val LIB_PATH = "/usr/lib/"
-
-// ----------------------------
 // Main Entry Point
 // ----------------------------
 fun main(args: Array<String>) {
