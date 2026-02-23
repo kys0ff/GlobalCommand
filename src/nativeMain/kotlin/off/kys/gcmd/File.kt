@@ -3,6 +3,8 @@
 package off.kys.gcmd
 
 import kotlinx.cinterop.*
+import platform.linux.getxattr
+import platform.linux.setxattr
 import platform.posix.*
 
 class File {
@@ -220,6 +222,49 @@ class File {
     }
 
     /**
+     * Sets an extended attribute on this file.
+     *
+     * @param name Attribute name (e.g., "user.comment")
+     * @param value Attribute value as ByteArray
+     * @return true if successful, false otherwise
+     */
+    @OptIn(ExperimentalForeignApi::class)
+    fun setExtendedAttribute(name: String, value: ByteArray): Boolean = memScoped {
+        val result = setxattr(
+            absolutePath,
+            name,
+            value.refTo(0),
+            value.size.convert(),
+            0
+        )
+        result == 0
+    }
+
+    /**
+     * Gets an extended attribute from this file.
+     *
+     * @param name Attribute name
+     * @return ByteArray value or null if not found
+     */
+    @OptIn(ExperimentalForeignApi::class)
+    fun getExtendedAttribute(name: String): ByteArray? = memScoped {
+        // First call to determine required size
+        val size = getxattr(absolutePath, name, null, 0u)
+        if (size <= 0) return@memScoped null
+
+        val buffer = ByteArray(size.toInt())
+
+        val result = getxattr(
+            absolutePath,
+            name,
+            buffer.refTo(0),
+            buffer.size.convert()
+        )
+
+        if (result < 0) null else buffer
+    }
+
+    /**
      * Moves this file to the specified destination path.
      *
      * @param destinationPath The path where the file should be moved.
@@ -262,7 +307,7 @@ class File {
     fun copyTo(
         destinationPath: String,
         overwrite: Boolean = true,
-        recursive: Boolean = true
+        recursive: Boolean = true,
     ): Boolean = memScoped {
 
         val pid = fork()
@@ -281,6 +326,7 @@ class File {
                     destinationPath,
                     null
                 )
+
                 else -> execlp(
                     "cp",
                     "cp",
