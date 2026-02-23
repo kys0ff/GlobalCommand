@@ -5,4 +5,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = "Global Command"
+rootProject.name = "GlobalCommand"
