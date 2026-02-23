@@ -2,35 +2,8 @@
 
 package off.kys.gcmd
 
-import kotlinx.cinterop.ByteVar
-import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.IntVar
-import kotlinx.cinterop.alloc
-import kotlinx.cinterop.allocArray
-import kotlinx.cinterop.get
-import kotlinx.cinterop.memScoped
-import kotlinx.cinterop.pointed
-import kotlinx.cinterop.ptr
-import kotlinx.cinterop.toKString
-import kotlinx.cinterop.value
-import platform.posix.S_IXUSR
-import platform.posix.X_OK
-import platform.posix.access
-import platform.posix.chmod
-import platform.posix.closedir
-import platform.posix.execlp
-import platform.posix.exit
-import platform.posix.fclose
-import platform.posix.fgets
-import platform.posix.fopen
-import platform.posix.fork
-import platform.posix.fprintf
-import platform.posix.fread
-import platform.posix.opendir
-import platform.posix.readdir
-import platform.posix.stat
-import platform.posix.symlink
-import platform.posix.waitpid
+import kotlinx.cinterop.*
+import platform.posix.*
 
 class File {
     private val path: String
@@ -156,16 +129,19 @@ class File {
     @OptIn(ExperimentalForeignApi::class)
     fun setExecutable(executable: Boolean): Boolean = memScoped {
         val st = alloc<stat>()
+
         if (stat(absolutePath, st.ptr) != 0) return@memScoped false
 
+        val execBits = S_IXUSR or S_IXGRP or S_IXOTH
         val currentMode = st.st_mode.toInt()
-        val newMode = if (executable) {
-            currentMode or S_IXUSR // Add owner execute bit
-        } else {
-            currentMode and S_IXUSR.inv() // Remove owner execute bit
-        }
 
-        chmod(absolutePath, newMode.toUInt()) == 0
+        val newMode = if (executable) {
+            currentMode or execBits        // chmod +x
+        } else {
+            currentMode and execBits.inv() // chmod -x
+        }.toUInt()
+
+        chmod(absolutePath, newMode) == 0
     }
 
     /**
@@ -217,7 +193,7 @@ class File {
      */
     fun mkdir(): Boolean {
         val dirPath = absolutePath
-        val result = platform.posix.mkdir(dirPath, 493u) // rwxr-xr-x permissions
+        val result = mkdir(dirPath, 493u) // rwxr-xr-x permissions
         return result == 0
     }
 
