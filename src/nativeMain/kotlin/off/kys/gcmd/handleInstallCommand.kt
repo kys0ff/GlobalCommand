@@ -4,97 +4,147 @@ import kotlin.system.exitProcess
 
 fun handleInstallCommand(positionals: List<String>, flags: List<String>) {
     if (!isRoot()) {
-        printError("gcmd requires root privileges to install packages. Try prefixing with 'sudo'.")
+        printError("Root privileges are required to install packages.")
+        println("${YELLOW}Tip:${RESET} Run with ${BOLD}sudo${RESET} (e.g. ${BOLD}sudo gcmd install <path>${RESET})")
         exitProcess(1)
     }
 
     val pkgPath = positionals.getOrNull(1)
     if (pkgPath.isNullOrBlank()) {
-        printError("No package path provided.")
-        println("${YELLOW}Tip: Use 'gcmd help' to see usage examples.${RESET}")
+        printError("No package path specified.")
+        println("${YELLOW}Usage:${RESET} ${BOLD}gcmd install <path> [options]${RESET}")
+        println("${YELLOW}Help:${RESET} Run ${BOLD}gcmd help${RESET} for examples.")
         exitProcess(1)
     }
 
     val pkgFile = pkgPath.toFile()
     if (!pkgFile.exists()) {
-        printError("Package file or directory not found: $pkgPath")
+        printError("Path not found: ${BOLD}$pkgPath${RESET}")
+        println("${YELLOW}Hint:${RESET} Verify the file or directory exists and try again.")
         exitProcess(1)
     }
 
     val deleteOriginal = flags.contains("--delete-original") || flags.contains("-d")
-    println("${CYAN}●${RESET} Installing package: ${BOLD}$pkgPath${RESET}")
+
+    println("${CYAN}▶ Starting installation...${RESET}")
+    println("${CYAN}•${RESET} Source: ${BOLD}$pkgPath${RESET}")
+    println("${CYAN}•${RESET} Mode: ${if (deleteOriginal) "Move (delete original)" else "Copy"}")
 
     when {
-        pkgFile.isFile() && (pkgFile.isRunnable() || pkgFile.extension in listOf("sh", "bin", "run")) ->
-            installFile(pkgFile, deleteOriginal)
+        pkgFile.isFile() && (pkgFile.isRunnable() || pkgFile.extension in supportedExecutables()) -> {
+            if (positionals.getOrNull(2) != null)
+                println("${YELLOW}• Warning:${RESET} Executable name argument will be ignored for single file installations.")
+            installFile(
+                pkgFile,
+                deleteOriginal
+            )
+        }
 
         pkgFile.isDirectory() ->
-            installDirectory(pkgFile, positionals.getOrNull(2) ?: pkgFile.name, deleteOriginal)
+            installDirectory(
+                pkgFile,
+                positionals.getOrNull(2) ?: pkgFile.name,
+                deleteOriginal
+            )
 
         else -> {
-            printError("The provided path is not a valid executable file or directory: $pkgPath")
+            printError("Unsupported package type.")
+            println("${YELLOW}Expected:${RESET} Executable file or directory.")
             exitProcess(1)
         }
     }
 }
 
-private fun installFile(file: File, deleteOriginal: Boolean) {
+private fun installFile(exeFile: File, deleteOriginal: Boolean) {
     try {
-        if (deleteOriginal) {
-            println("${YELLOW}!${RESET} Moving original file...")
-            file.moveTo(BIN_PATH)
-        } else {
-            println("${CYAN}●${RESET} Copying file...")
-            file.copyTo(BIN_PATH)
+        val destination = File(BIN_PATH, exeFile.name)
+
+        if (destination.exists()) {
+            printError("Executable '${exeFile.name}' already exists in $BIN_PATH.")
+            println("${YELLOW}Fix:${RESET} Remove it manually before reinstalling.")
+            exitProcess(1)
         }
-        println("${GREEN}✔${RESET} Package installed successfully to ${BOLD}$BIN_PATH${RESET}")
+
+        if (deleteOriginal) {
+            println("${YELLOW}• Moving executable to ${BOLD}$BIN_PATH${RESET} ...")
+            exeFile.moveTo(BIN_PATH)
+        } else {
+            println("${CYAN}• Copying executable to ${BOLD}$BIN_PATH${RESET} ...")
+            exeFile.copyTo(BIN_PATH)
+        }
+
+        if (!exeFile.canExecute()) {
+            println("${YELLOW}• Granting execute permission to ${BOLD}${exeFile.name}${RESET}")
+            exeFile.setExecutable(true)
+        }
+
+        println("${GREEN}✔ Installation complete!${RESET}")
+        println("${GREEN}Ready to use:${RESET} Type ${BOLD}${exeFile.name}${RESET} in your terminal.")
+
     } catch (e: Exception) {
-        printError("Installation failed: ${e.message}")
+        printError("Installation failed.")
+        println("${YELLOW}Reason:${RESET} ${e.message}")
         exitProcess(1)
     }
 }
 
 private fun installDirectory(dir: File, exeNameOverride: String, deleteOriginal: Boolean) {
     try {
-        if (deleteOriginal) {
-            println("${YELLOW}!${RESET} Moving original directory...")
-            dir.moveTo(LIB_PATH)
-        } else {
-            println("${CYAN}●${RESET} Copying directory...")
-            dir.copyTo(LIB_PATH + dir.name)
-        }
+        val targetDir = File(LIB_PATH, dir.name)
 
-        println("${GREEN}✔${RESET} Directory installed successfully to ${BOLD}$LIB_PATH${dir.name}${RESET}")
-
-        // Linking executable
-        println("${CYAN}●${RESET} Linking executable to ${BOLD}$BIN_PATH$exeNameOverride${RESET}")
-        val linkFile = File(BIN_PATH, exeNameOverride)
-        if (linkFile.exists()) {
-            printError("A file named '$exeNameOverride' already exists in $BIN_PATH.")
-            println("Please remove it before reinstalling, or provide a custom executable name.")
+        if (targetDir.exists()) {
+            printError("Directory '${dir.name}' already exists in $LIB_PATH.")
+            println("${YELLOW}Fix:${RESET} Remove it manually before reinstalling.")
             exitProcess(1)
         }
 
-        val exeFile = File(
-            LIB_PATH,
-            exeNameOverride
-        ).listFiles()?.find { it.isFile() && it.isRunnable() && it.name == exeNameOverride }
+        if (deleteOriginal) {
+            println("${YELLOW}• Moving directory to ${BOLD}$LIB_PATH${RESET} ...")
+            dir.moveTo(LIB_PATH)
+        } else {
+            println("${CYAN}• Copying directory to ${BOLD}$LIB_PATH${dir.name}${RESET} ...")
+            dir.copyTo(LIB_PATH + dir.name)
+        }
+
+        println("${GREEN}✔ Directory installed successfully.${RESET}")
+        println("${GREEN}• Location:${RESET} ${BOLD}$LIB_PATH${dir.name}${RESET}")
+
+        // Linking executable
+        val linkFile = File(BIN_PATH, exeNameOverride)
+
+        println("${CYAN}• Creating executable link:${RESET} ${BOLD}$BIN_PATH$exeNameOverride${RESET}")
+
+        if (linkFile.exists()) {
+            printError("Executable '${exeNameOverride}' already exists in $BIN_PATH.")
+            println("${YELLOW}Fix:${RESET} Remove it manually or choose a different executable name.")
+            exitProcess(1)
+        }
+
+        val installedDir = File(LIB_PATH, dir.name)
+
+        val exeFile = installedDir
+            .listFiles()
+            ?.find { it.isFile() && it.name == exeNameOverride }
             ?: run {
-                printError("No executable named '$exeNameOverride' found in directory: $LIB_PATH$exeNameOverride")
+                printError("Executable '${exeNameOverride}' not found inside installed directory.")
+                println("${YELLOW}Expected:${RESET} ${installedDir.absolutePath}/$exeNameOverride")
                 exitProcess(1)
             }
 
-        exeFile.createSymlinkTo(linkFile.absolutePath)
-        println("${GREEN}✔${RESET} Symlink created successfully.")
-
         if (!exeFile.canExecute()) {
-            println("${YELLOW}!${RESET} Setting executable permissions for ${BOLD}$exeFile${RESET}")
+            println("${YELLOW}• Granting execute permission to ${BOLD}${exeFile.name}${RESET}")
             exeFile.setExecutable(true)
         }
 
-        println("${GREEN}✔${RESET} Installation complete!")
+        exeFile.createSymlinkTo(linkFile.absolutePath)
+
+        println("${GREEN}✔ Symlink created successfully.${RESET}")
+        println("${GREEN}✔ Installation complete!${RESET}")
+        println("${GREEN}Ready to use:${RESET} Type ${BOLD}$exeNameOverride${RESET} in your terminal.")
+
     } catch (e: Exception) {
-        printError("Installation failed: ${e.message}")
+        printError("Installation failed.")
+        println("${YELLOW}Reason:${RESET} ${e.message}")
         exitProcess(1)
     }
 }

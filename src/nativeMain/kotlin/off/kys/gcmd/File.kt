@@ -63,7 +63,7 @@ class File {
      *
      * @return the file name without the extension or the full file name if there is no extension
      */
-    val fileNameWithoutExtension: String
+    val nameWithoutExtension: String
         get() = name.substringBeforeLast('.')
 
     /**
