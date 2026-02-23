@@ -2,6 +2,17 @@ package off.kys.gcmd
 
 import kotlin.system.exitProcess
 
+/**
+ * Handles the 'install' command for gcmd, which allows users to install executable files or directories containing executables.
+ * This function performs several checks and operations to ensure a smooth installation process, including:
+ * - Verifying root privileges
+ * - Validating the provided package path
+ * - Handling both file and directory installations
+ * - Managing options for deleting the original file, forcing installation, skipping symlink creation, and skipping version metadata
+ *
+ * @param positionals A list of positional arguments provided by the user (e.g., command and package path).
+ * @param flags A list of flags provided by the user (e.g., --delete-original, --brutal, --no-symlink, --no-trace).
+ */
 fun handleInstallCommand(positionals: List<String>, flags: List<String>) {
     if (!isRoot()) {
         printError("Root privileges are required to install packages.")
