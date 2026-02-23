@@ -24,7 +24,10 @@ fun handleInstallCommand(positionals: List<String>, flags: List<String>) {
         exitProcess(1)
     }
 
-    val deleteOriginal = flags.contains("--delete-original") || flags.contains("-d")
+    val deleteOriginal = flags.contains("--delete-original")
+    val forceInstall = flags.contains("--brutal")
+    val noSymlink = flags.contains("--no-symlink")
+    val noTrace = flags.contains("--no-trace")
 
     println("${CYAN}▶ Starting installation...${RESET}")
     println("${CYAN}•${RESET} Source: ${BOLD}$pkgPath${RESET}")
@@ -34,9 +37,13 @@ fun handleInstallCommand(positionals: List<String>, flags: List<String>) {
         pkgFile.isFile() && (pkgFile.isRunnable() || pkgFile.extension in supportedExecutables()) -> {
             if (positionals.getOrNull(2) != null)
                 println("${YELLOW}• Warning:${RESET} Executable name argument will be ignored for single file installations.")
+            if (noSymlink)
+                println("${YELLOW}• Note:${RESET} Symlink option is not applicable for single file installations.")
             installFile(
                 pkgFile,
-                deleteOriginal
+                deleteOriginal,
+                forceInstall,
+                noTrace
             )
         }
 
@@ -44,7 +51,10 @@ fun handleInstallCommand(positionals: List<String>, flags: List<String>) {
             installDirectory(
                 pkgFile,
                 positionals.getOrNull(2) ?: pkgFile.name,
-                deleteOriginal
+                deleteOriginal,
+                forceInstall,
+                noSymlink,
+                noTrace
             )
 
         else -> {
@@ -55,11 +65,26 @@ fun handleInstallCommand(positionals: List<String>, flags: List<String>) {
     }
 }
 
-private fun installFile(exeFile: File, deleteOriginal: Boolean) {
+/**
+ * Installs a single executable file to the BIN_PATH directory.
+ * This function handles both copying and moving the file based on the deleteOriginal flag.
+ * It also sets the appropriate permissions and adds version metadata if noTrace is false.
+ *
+ * @param exeFile The executable file to be installed.
+ * @param deleteOriginal If true, the original file will be moved instead of copied.
+ * @param forceInstall If true, existing files will be overwritten without confirmation.
+ * @param noTrace If true, version metadata will not be added to the installed
+ */
+private fun installFile(
+    exeFile: File,
+    deleteOriginal: Boolean,
+    forceInstall: Boolean,
+    noTrace: Boolean,
+) {
     try {
         val destination = File(BIN_PATH, exeFile.name)
 
-        if (destination.exists()) {
+        if (destination.exists() && !forceInstall) {
             printError("Executable '${exeFile.name}' already exists in $BIN_PATH.")
             println("${YELLOW}Fix:${RESET} Remove it manually before reinstalling.")
             exitProcess(1)
@@ -81,7 +106,12 @@ private fun installFile(exeFile: File, deleteOriginal: Boolean) {
             }
         }
 
-        destination.setExtendedAttribute(ATTR_GCMD_VERSION, GCMD_VERSION.encodeToByteArray())
+        if (noTrace) {
+            println("${YELLOW}• Skipping version metadata due to --no-trace flag.${RESET}")
+        } else {
+            destination.setExtendedAttribute(ATTR_GCMD_VERSION, GCMD_VERSION.encodeToByteArray())
+            println("${GREEN}✔ Version metadata added.${RESET}")
+        }
 
         println("${GREEN}✔ Installation complete!${RESET}")
         println("${GREEN}Ready to use:${RESET} Type ${BOLD}${exeFile.name}${RESET} in your terminal.")
@@ -93,11 +123,30 @@ private fun installFile(exeFile: File, deleteOriginal: Boolean) {
     }
 }
 
-private fun installDirectory(dir: File, exeNameOverride: String, deleteOriginal: Boolean) {
+/**
+ * Installs a directory containing an executable to the LIB_PATH directory and creates a symlink in BIN_PATH.
+ * This function handles both copying and moving the directory based on the deleteOriginal flag.
+ * It also sets the appropriate permissions on the executable and adds version metadata if noTrace is false.
+ * @param dir The directory to be installed.
+ *
+ * @param exeNameOverride The name of the executable to link in BIN_PATH (defaults to the directory name if not provided).
+ * @param deleteOriginal If true, the original directory will be moved instead of copied.
+ * @param forceInstall If true, existing files will be overwritten without confirmation.
+ * @param noSymlink If true, the symlink in BIN_PATH will not be created (not recommended for directory installations).
+ * @param noTrace If true, version metadata will not be added to the installed package (can cause issues with package management).
+ */
+private fun installDirectory(
+    dir: File,
+    exeNameOverride: String,
+    deleteOriginal: Boolean,
+    forceInstall: Boolean,
+    noSymlink: Boolean,
+    noTrace: Boolean,
+) {
     try {
         val targetDir = File(LIB_PATH, dir.name)
 
-        if (targetDir.exists()) {
+        if (targetDir.exists() && !forceInstall) {
             printError("Directory '${dir.name}' already exists in $LIB_PATH.")
             println("${YELLOW}Fix:${RESET} Remove it manually before reinstalling.")
             exitProcess(1)
@@ -114,38 +163,60 @@ private fun installDirectory(dir: File, exeNameOverride: String, deleteOriginal:
         println("${GREEN}✔ Directory installed successfully.${RESET}")
         println("${GREEN}• Location:${RESET} ${BOLD}$LIB_PATH${dir.name}${RESET}")
 
-        // Linking executable
-        val linkFile = File(BIN_PATH, exeNameOverride)
+        if (noSymlink) {
+            println("${YELLOW}• Skipping symlink creation due to --no-symlink flag.${RESET}")
+            println("${YELLOW}Warning:${RESET} Without a symlink in $BIN_PATH, you will need to run the executable with its full path.")
 
-        println("${CYAN}• Creating executable link:${RESET} ${BOLD}$BIN_PATH$exeNameOverride${RESET}")
+            if (noTrace) {
+                println("${YELLOW}• Skipping version metadata due to --no-trace flag.${RESET}")
+            } else {
+                targetDir.setExtendedAttribute(ATTR_GCMD_VERSION, GCMD_VERSION.encodeToByteArray())
+                println("${GREEN}✔ Version metadata added to installed directory.${RESET}")
+            }
+        } else {
+            // Linking executable
+            val linkFile = File(BIN_PATH, exeNameOverride)
 
-        if (linkFile.exists()) {
-            printError("Executable '${exeNameOverride}' already exists in $BIN_PATH.")
-            println("${YELLOW}Fix:${RESET} Remove it manually or choose a different executable name.")
-            exitProcess(1)
-        }
+            println("${CYAN}• Creating executable link:${RESET} ${BOLD}$BIN_PATH$exeNameOverride${RESET}")
 
-        val installedDir = File(LIB_PATH, dir.name)
-
-        val exeFile = installedDir
-            .listFiles()
-            ?.find { it.isFile() && it.name == exeNameOverride }
-            ?: run {
-                printError("Executable '${exeNameOverride}' not found inside installed directory.")
-                println("${YELLOW}Expected:${RESET} ${installedDir.absolutePath}/$exeNameOverride")
+            if (linkFile.exists() && !forceInstall) {
+                printError("Executable '${exeNameOverride}' already exists in $BIN_PATH.")
+                println("${YELLOW}Fix:${RESET} Remove it manually or choose a different executable name.")
                 exitProcess(1)
             }
 
-        println("${YELLOW}• Granting execute permission to ${BOLD}${exeFile.name}${RESET}")
-        exeFile.setExecutable(true)
+            val installedDir = File(LIB_PATH, dir.name)
 
-        exeFile.createSymlinkTo(linkFile.absolutePath)
-        println("${GREEN}✔ Symlink created successfully.${RESET}")
+            val exeFile = installedDir
+                .listFiles()
+                ?.find { it.isFile() && it.name == exeNameOverride }
+                ?: run {
+                    printError("Executable '${exeNameOverride}' not found inside installed directory.")
+                    println("${YELLOW}Expected:${RESET} ${installedDir.absolutePath}/$exeNameOverride")
+                    exitProcess(1)
+                }
 
-        exeFile.setExtendedAttribute(ATTR_GCMD_VERSION, GCMD_VERSION.encodeToByteArray())
+            println("${YELLOW}• Granting execute permission to ${BOLD}${exeFile.name}${RESET}")
+            exeFile.setExecutable(true)
+
+            exeFile.createSymlinkTo(linkFile.absolutePath)
+            println("${GREEN}✔ Symlink created successfully.${RESET}")
+
+            if (noTrace) {
+                println("${YELLOW}• Skipping version metadata due to --no-trace flag.${RESET}")
+            } else {
+                targetDir.setExtendedAttribute(ATTR_GCMD_VERSION, GCMD_VERSION.encodeToByteArray())
+                println("${GREEN}✔ Version metadata added to installed directory.${RESET}")
+
+                exeFile.setExtendedAttribute(ATTR_GCMD_VERSION, GCMD_VERSION.encodeToByteArray())
+                println("${GREEN}✔ Version metadata added to executable.${RESET}")
+            }
+        }
 
         println("${GREEN}✔ Installation complete!${RESET}")
-        println("${GREEN}Ready to use:${RESET} Type ${BOLD}$exeNameOverride${RESET} in your terminal.")
+
+        if (!noSymlink)
+            println("${GREEN}Ready to use:${RESET} Type ${BOLD}$exeNameOverride${RESET} in your terminal.")
 
     } catch (e: Exception) {
         printError("Installation failed.")

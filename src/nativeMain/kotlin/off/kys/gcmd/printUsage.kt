@@ -22,7 +22,10 @@ ${BOLD}INSTALL BEHAVIOR:${RESET}
                    [exe_name] if the executable name differs from the folder name.
 
 ${BOLD}OPTIONS (install):${RESET}
-    -d, --delete-original     Move the file/directory instead of copying it
+    --delete-original     Move the file/directory instead of copying it
+    --brutal              Force installation by overwriting existing files (use with caution)
+    --no-symlink          Do not create a symlink in $BIN_PATH for directory installations
+    --no-trace            Do not add GCMD version metadata to the installed package (can cause package management issues)
 
 ${BOLD}EXAMPLES:${RESET}
     sudo gcmd install ./my_script.sh              ${DIM}# Installs a single file${RESET}
