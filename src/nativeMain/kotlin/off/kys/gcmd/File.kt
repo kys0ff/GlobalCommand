@@ -154,20 +154,18 @@ class File {
      * @return true if the operation was successful, false otherwise.
      */
     @OptIn(ExperimentalForeignApi::class)
-    fun setExecutable(executable: Boolean): Boolean {
-        return memScoped {
-            val st = alloc<stat>()
-            if (stat(absolutePath, st.ptr) != 0) return@memScoped false
+    fun setExecutable(executable: Boolean): Boolean = memScoped {
+        val st = alloc<stat>()
+        if (stat(absolutePath, st.ptr) != 0) return@memScoped false
 
-            val currentMode = st.st_mode.toInt()
-            val newMode = if (executable) {
-                currentMode or S_IXUSR // Add owner execute bit
-            } else {
-                currentMode and S_IXUSR.inv() // Remove owner execute bit
-            }
-
-            chmod(absolutePath, newMode.toUInt()) == 0
+        val currentMode = st.st_mode.toInt()
+        val newMode = if (executable) {
+            currentMode or S_IXUSR // Add owner execute bit
+        } else {
+            currentMode and S_IXUSR.inv() // Remove owner execute bit
         }
+
+        chmod(absolutePath, newMode.toUInt()) == 0
     }
 
     /**
