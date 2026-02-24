@@ -1,4 +1,4 @@
-package off.kys.gcmd
+package off.kys.gcmd.util
 
 import platform.posix.geteuid
 

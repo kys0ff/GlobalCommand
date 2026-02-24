@@ -1,6 +1,6 @@
 @file:Suppress("unused")
 
-package off.kys.gcmd
+package off.kys.gcmd.util
 
 import kotlinx.cinterop.*
 import platform.linux.getxattr

@@ -1,5 +1,20 @@
-package off.kys.gcmd
+package off.kys.gcmd.cli
 
+import off.kys.gcmd.common.ATTR_GCMD_LIB_PATH
+import off.kys.gcmd.common.ATTR_GCMD_VERSION
+import off.kys.gcmd.common.BIN_PATH
+import off.kys.gcmd.common.BOLD
+import off.kys.gcmd.common.CYAN
+import off.kys.gcmd.common.GCMD_VERSION
+import off.kys.gcmd.common.GREEN
+import off.kys.gcmd.common.LIB_PATH
+import off.kys.gcmd.common.RESET
+import off.kys.gcmd.common.YELLOW
+import off.kys.gcmd.common.printError
+import off.kys.gcmd.common.supportedExecutables
+import off.kys.gcmd.util.File
+import off.kys.gcmd.util.isRoot
+import off.kys.gcmd.util.toFile
 import kotlin.system.exitProcess
 
 /**
@@ -96,16 +111,16 @@ private fun installFile(
         val destination = File(BIN_PATH, exeFile.name)
 
         if (destination.exists() && !forceInstall) {
-            printError("Executable '${exeFile.name}' already exists in $BIN_PATH.")
+            printError("Executable '${exeFile.name}' already exists in ${BIN_PATH}.")
             println("${YELLOW}Fix:${RESET} Remove it manually before reinstalling.")
             exitProcess(1)
         }
 
         if (deleteOriginal) {
-            println("${YELLOW}• Moving executable to ${BOLD}$BIN_PATH${RESET} ...")
+            println("${YELLOW}• Moving executable to ${BOLD}${BIN_PATH}${RESET} ...")
             exeFile.moveTo(BIN_PATH)
         } else {
-            println("${CYAN}• Copying executable to ${BOLD}$BIN_PATH${RESET} ...")
+            println("${CYAN}• Copying executable to ${BOLD}${BIN_PATH}${RESET} ...")
             exeFile.copyTo(BIN_PATH)
         }
 
@@ -158,25 +173,25 @@ private fun installDirectory(
         val targetDir = File(LIB_PATH, dir.name)
 
         if (targetDir.exists() && !forceInstall) {
-            printError("Directory '${dir.name}' already exists in $LIB_PATH.")
+            printError("Directory '${dir.name}' already exists in ${LIB_PATH}.")
             println("${YELLOW}Fix:${RESET} Remove it manually before reinstalling.")
             exitProcess(1)
         }
 
         if (deleteOriginal) {
-            println("${YELLOW}• Moving directory to ${BOLD}$LIB_PATH${RESET} ...")
+            println("${YELLOW}• Moving directory to ${BOLD}${LIB_PATH}${RESET} ...")
             dir.moveTo(LIB_PATH)
         } else {
-            println("${CYAN}• Copying directory to ${BOLD}$LIB_PATH${dir.name}${RESET} ...")
+            println("${CYAN}• Copying directory to ${BOLD}${LIB_PATH}${dir.name}${RESET} ...")
             dir.copyTo(LIB_PATH + dir.name)
         }
 
         println("${GREEN}✔ Directory installed successfully.${RESET}")
-        println("${GREEN}• Location:${RESET} ${BOLD}$LIB_PATH${dir.name}${RESET}")
+        println("${GREEN}• Location:${RESET} ${BOLD}${LIB_PATH}${dir.name}${RESET}")
 
         if (noSymlink) {
             println("${YELLOW}• Skipping symlink creation due to --no-symlink flag.${RESET}")
-            println("${YELLOW}Warning:${RESET} Without a symlink in $BIN_PATH, you will need to run the executable with its full path.")
+            println("${YELLOW}Warning:${RESET} Without a symlink in ${BIN_PATH}, you will need to run the executable with its full path.")
 
             if (noTrace) {
                 println("${YELLOW}• Skipping version metadata due to --no-trace flag.${RESET}")
@@ -188,10 +203,10 @@ private fun installDirectory(
             // Linking executable
             val linkFile = File(BIN_PATH, exeNameOverride)
 
-            println("${CYAN}• Creating executable link:${RESET} ${BOLD}$BIN_PATH$exeNameOverride${RESET}")
+            println("${CYAN}• Creating executable link:${RESET} ${BOLD}${BIN_PATH}$exeNameOverride${RESET}")
 
             if (linkFile.exists() && !forceInstall) {
-                printError("Executable '${exeNameOverride}' already exists in $BIN_PATH.")
+                printError("Executable '${exeNameOverride}' already exists in ${BIN_PATH}.")
                 println("${YELLOW}Fix:${RESET} Remove it manually or choose a different executable name.")
                 exitProcess(1)
             }

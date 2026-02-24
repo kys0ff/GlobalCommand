@@ -1,4 +1,4 @@
-package off.kys.gcmd
+package off.kys.gcmd.common
 
 /**
  * This file contains ANSI escape codes for coloring and styling console output.

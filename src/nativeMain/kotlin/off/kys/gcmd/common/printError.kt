@@ -1,4 +1,4 @@
-package off.kys.gcmd
+package off.kys.gcmd.common
 
 /**
  * Prints an error message to the console in a standardized format.

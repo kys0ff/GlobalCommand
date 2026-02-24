@@ -1,4 +1,4 @@
-package off.kys.gcmd
+package off.kys.gcmd.common
 
 /**
  * Returns a list of supported executable file extensions for the current platform.
