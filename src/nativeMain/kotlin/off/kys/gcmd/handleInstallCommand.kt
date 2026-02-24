@@ -221,6 +221,9 @@ private fun installDirectory(
 
                 exeFile.setExtendedAttribute(ATTR_GCMD_VERSION, GCMD_VERSION.encodeToByteArray())
                 println("${GREEN}✔ Version metadata added to executable.${RESET}")
+
+                exeFile.setExtendedAttribute(ATTR_GCMD_LIB_PATH, targetDir.absolutePath.encodeToByteArray())
+                println("${GREEN}✔ Library path metadata added to executable.${RESET}")
             }
         }
 

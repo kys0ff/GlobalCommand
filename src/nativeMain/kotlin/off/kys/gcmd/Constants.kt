@@ -17,6 +17,12 @@ const val GCMD_VERSION = "0.0.1"
 const val ATTR_GCMD_VERSION = "gcmd.version"
 
 /**
+ * The attribute key used to store the path to the system's executable directory in metadata or configuration.
+ * This can be used to ensure that installed packages are correctly linked to the expected binary location.
+ */
+const val ATTR_GCMD_LIB_PATH = "gcmd.lib_path"
+
+/**
  * The default path to the system's executable directory.
  */
 const val BIN_PATH = "/usr/bin/"
